@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException, Query, Body
-from pydantic import BaseModel, Field, validator
-from typing import Dict, Any, List, Optional, Literal
-from enum import Enum
-from app.services.ia_client import ask_llm
 import logging
 import os
+from enum import Enum
+from typing import Any, Dict, List, Literal, Optional
+
+from fastapi import APIRouter, Body, HTTPException, Query
+from pydantic import BaseModel, Field, validator
+
+from app.services.ia_client import ask_llm
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

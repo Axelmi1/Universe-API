@@ -1,13 +1,15 @@
-from fastapi import FastAPI, Request, HTTPException, Header, Depends, APIRouter
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
 import logging
-import time
-import uvicorn
 import os
 import sys
+import time
+from contextlib import asynccontextmanager
+
+import uvicorn
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 from app.routers import fit, nutri, tips
 
 # Load environment variables only once at startup

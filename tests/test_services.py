@@ -1,6 +1,8 @@
-import pytest
 import json
+
+import pytest
 import respx
+
 from app.services.ia_client import ask_llm
 
 

@@ -1,9 +1,13 @@
-import os, json, re, time
-from typing import Dict, Any, Optional
-from fastapi import HTTPException
-from dotenv import load_dotenv
-import openai
+import json
 import logging
+import os
+import re
+import time
+from typing import Any, Dict, Optional
+
+import openai
+from dotenv import load_dotenv
+from fastapi import HTTPException
 
 # Load environment variables only once if not already loaded
 if not openai.api_key:
