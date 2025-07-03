@@ -3,6 +3,7 @@ import json
 import respx
 from app.services.ia_client import ask_llm
 
+
 class TestIAClient:
     """Test suite for IA client functionality."""
 
@@ -18,17 +19,18 @@ class TestIAClient:
             mock.post("/v1/chat/completions").respond(
                 status_code=200,
                 json={
-                    "choices": [{
-                        "message": {
-                            "content": json.dumps({
-                                "status": "success",
-                                "data": {"test": "value"}
-                            })
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {"status": "success", "data": {"test": "value"}}
+                                )
+                            }
                         }
-                    }]
-                }
+                    ]
+                },
             )
-            
+
             result = ia_client("Test prompt", max_tokens=100)
             assert result["status"] == "success"
             assert result["data"]["test"] == "value"
@@ -40,23 +42,24 @@ class TestIAClient:
             mock.post("/v1/chat/completions").respond(
                 status_code=200,
                 json={
-                    "choices": [{
-                        "message": {
-                            "content": json.dumps({
-                                "workout": {
-                                    "exercises": ["push-ups", "squats"],
-                                    "duration": "30 minutes"
-                                },
-                                "nutrition": {
-                                    "calories": 2000,
-                                    "protein": 150
-                                }
-                            })
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "workout": {
+                                            "exercises": ["push-ups", "squats"],
+                                            "duration": "30 minutes",
+                                        },
+                                        "nutrition": {"calories": 2000, "protein": 150},
+                                    }
+                                )
+                            }
                         }
-                    }]
-                }
+                    ]
+                },
             )
-            
+
             result = ia_client("Generate workout", max_tokens=500)
             assert "workout" in result
             assert "nutrition" in result
@@ -69,33 +72,37 @@ class TestIAClient:
             mock.post("/v1/chat/completions").respond(
                 status_code=200,
                 json={
-                    "choices": [{
-                        "message": {
-                            "content": json.dumps({
-                                "meals": [
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
                                     {
-                                        "name": "Breakfast",
-                                        "macros": {
-                                            "protein_g": 25,
-                                            "carbs_g": 40,
-                                            "fat_g": 15
-                                        }
-                                    },
-                                    {
-                                        "name": "Lunch", 
-                                        "macros": {
-                                            "protein_g": 35,
-                                            "carbs_g": 50,
-                                            "fat_g": 20
-                                        }
+                                        "meals": [
+                                            {
+                                                "name": "Breakfast",
+                                                "macros": {
+                                                    "protein_g": 25,
+                                                    "carbs_g": 40,
+                                                    "fat_g": 15,
+                                                },
+                                            },
+                                            {
+                                                "name": "Lunch",
+                                                "macros": {
+                                                    "protein_g": 35,
+                                                    "carbs_g": 50,
+                                                    "fat_g": 20,
+                                                },
+                                            },
+                                        ]
                                     }
-                                ]
-                            })
+                                )
+                            }
                         }
-                    }]
-                }
+                    ]
+                },
             )
-            
+
             result = ia_client("Generate meal plan", max_tokens=800)
             assert "meals" in result
             assert len(result["meals"]) == 2
@@ -108,15 +115,9 @@ class TestIAClient:
             # First attempt returns invalid JSON
             mock.post("/v1/chat/completions").respond(
                 status_code=200,
-                json={
-                    "choices": [{
-                        "message": {
-                            "content": "Invalid JSON response"
-                        }
-                    }]
-                }
+                json={"choices": [{"message": {"content": "Invalid JSON response"}}]},
             )
-            
+
             with pytest.raises(Exception):  # Should raise HTTPException
                 ia_client("Test prompt", max_tokens=100, retry_count=0)
 
@@ -127,17 +128,21 @@ class TestIAClient:
             mock.post("/v1/chat/completions").respond(
                 status_code=200,
                 json={
-                    "choices": [{
-                        "message": {
-                            "content": json.dumps({
-                                "tips": ["Tip 1", "Tip 2", "Tip 3"],
-                                "category": "fitness"
-                            })
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "tips": ["Tip 1", "Tip 2", "Tip 3"],
+                                        "category": "fitness",
+                                    }
+                                )
+                            }
                         }
-                    }]
-                }
+                    ]
+                },
             )
-            
+
             result = ia_client("Generate tips", max_tokens=300, force_json=False)
             assert "tips" in result
             assert len(result["tips"]) == 3
@@ -147,10 +152,9 @@ class TestIAClient:
         """Test handling of OpenAI API errors."""
         with respx.mock(base_url="https://api.openai.com") as mock:
             mock.post("/v1/chat/completions").respond(
-                status_code=500,
-                json={"error": "Internal server error"}
+                status_code=500, json={"error": "Internal server error"}
             )
-            
+
             with pytest.raises(Exception):  # Should raise HTTPException
                 ia_client("Test prompt", max_tokens=100)
 
@@ -176,6 +180,7 @@ class TestIAClient:
         """Test handling of malformed JSON."""
         pass
 
+
 class TestAPIKeyValidation:
     """Test suite for API key validation."""
 
@@ -187,6 +192,6 @@ class TestAPIKeyValidation:
 
     def test_invalid_api_key_format(self):
         """Test rejection of invalid API key formats."""
-        # This would test the API key validation logic  
+        # This would test the API key validation logic
         # Currently handled in main.py dependency
-        assert True 
+        assert True
