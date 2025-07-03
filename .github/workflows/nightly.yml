@@ -1,0 +1,61 @@
+name: 🌙 Nightly Tests with Real API
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Tous les jours à 2h du matin UTC
+  workflow_dispatch:     # Permet de lancer manuellement
+
+env:
+  PYTHON_VERSION: "3.9"
+
+jobs:
+  nightly-real-api-tests:
+    name: 🧪 Tests avec API réelle
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+
+      - name: 🔧 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-html
+
+      - name: 🧪 Run nightly tests with real API
+        env:
+          ENVIRONMENT: test
+          MASTER_API_KEY: ${{ secrets.MASTER_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RUN_NIGHTLY_TESTS: "true"
+        run: |
+          pytest -m "nightly" --html=nightly-report.html --self-contained-html -v || true
+
+      - name: 📊 Upload nightly test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-test-report
+          path: nightly-report.html
+
+      - name: 📢 Notify on failures
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          text: '🚨 Tests nightly Universe API ont échoué!'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 

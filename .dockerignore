@@ -1,0 +1,98 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# 🧪 Tests et coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache
+
+# 🔧 IDE et éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 📝 Documentation
+*.md
+docs/
+*.rst
+
+# 🔐 Secrets et configuration
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+*.key
+*.pem
+*.crt
+
+# 🗂️ Git
+.git/
+.gitignore
+.gitattributes
+
+# 📦 Dépendances et builds
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+dist/
+build/
+*.egg-info/
+
+# 🐳 Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 🚀 CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+Jenkinsfile
+
+# 📊 Logs et monitoring
+*.log
+logs/
+monitoring/
+
+# 🧹 Fichiers temporaires
+tmp/
+temp/
+.tmp/
+.cache/
+
+# 🔄 Sauvegarde
+*.bak
+*.backup
+*.old
+
+# 📋 Autres
+LICENSE
+README*
+CHANGELOG*
+CONTRIBUTING*
+.editorconfig 

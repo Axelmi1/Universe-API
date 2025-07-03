@@ -1,0 +1,242 @@
+name: 🚀 Universe API CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: "3.9"
+  IMAGE_NAME: universe-api
+
+jobs:
+  # Job 1: Tests et Quality Checks
+  quality-checks:
+    name: 🧪 Tests & Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            .pytest_cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}-${{ hashFiles('**/pytest.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 🔧 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-cov black isort ruff safety bandit
+
+      - name: 🎨 Code formatting check (Black)
+        run: black --check --diff app/ tests/
+
+      - name: 📏 Import sorting check (isort)
+        run: isort --check-only --diff app/ tests/
+
+      - name: 🔍 Lint check (Ruff)
+        run: ruff check app/ tests/
+
+      - name: 🔒 Security check (Bandit)
+        run: bandit -r app/ -f json -o bandit-report.json || true
+
+      - name: 🛡️ Dependency security check (Safety)
+        run: safety check --json --output safety-report.json || true
+
+      - name: 🧪 Run tests with coverage
+        env:
+          ENVIRONMENT: test
+          MASTER_API_KEY: test-key
+          OPENAI_API_KEY: dummy-key-for-testing
+        run: |
+          pytest --cov=app --cov-report=xml --cov-report=html --cov-report=term-missing -v
+
+      - name: 📊 Upload coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+      - name: 📋 Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            htmlcov/
+            bandit-report.json
+            safety-report.json
+            coverage.xml
+
+  # Job 2: Build Docker Image
+  docker-build:
+    name: 🐳 Docker Build
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: github.event_name == 'push'
+    
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🔑 Log in to Docker Hub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🏗️ Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 3: Integration Tests (optionnel)
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+    
+    services:
+      universe-api:
+        image: ${{ needs.docker-build.outputs.image-tag }}
+        ports:
+          - 8000:8000
+        env:
+          ENVIRONMENT: test
+          MASTER_API_KEY: ${{ secrets.MASTER_API_KEY }}
+          OPENAI_API_KEY: dummy-key
+        options: --health-cmd "curl -f http://localhost:8000/health" --health-interval 30s --health-retries 3
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 🔧 Install test dependencies
+        run: |
+          pip install requests pytest
+
+      - name: 🧪 Run integration tests
+        run: |
+          # Test API endpoints
+          curl -f http://localhost:8000/health
+          curl -f http://localhost:8000/api/v1/metadata/fitness/fitness-levels
+          curl -f http://localhost:8000/api/v1/metadata/nutrition/goals
+
+  # Job 4: Deployment (production)
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [quality-checks, docker-build, integration-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: 🚀 Deploy to production server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_SERVER }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            echo "🔄 Pulling latest image..."
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            
+            echo "🛑 Stopping existing container..."
+            docker stop universe-api || true
+            docker rm universe-api || true
+            
+            echo "🚀 Starting new container..."
+            docker run -d \
+              --name universe-api \
+              --restart unless-stopped \
+              -p 80:8000 \
+              -e ENVIRONMENT=production \
+              -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+              -e MASTER_API_KEY="${{ secrets.MASTER_API_KEY }}" \
+              -e ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}" \
+              ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            
+            echo "⏳ Waiting for service to be ready..."
+            sleep 10
+            
+            echo "🔍 Health check..."
+            curl -f http://localhost/health || exit 1
+            
+            echo "✅ Deployment successful!"
+
+  # Job 5: Notification
+  notify:
+    name: 📢 Notifications
+    runs-on: ubuntu-latest
+    needs: [quality-checks, docker-build, deploy-production]
+    if: always()
+    
+    steps:
+      - name: 📢 Notify Slack on success
+        if: needs.deploy-production.result == 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          text: '🎉 Universe API déployé avec succès en production!'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📢 Notify Slack on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#deployments'
+          text: '❌ Échec du déploiement Universe API'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 
