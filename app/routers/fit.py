@@ -3,7 +3,7 @@ import os
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel, Field, validator
 
 from app.services.ia_client import ask_llm

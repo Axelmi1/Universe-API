@@ -1,9 +1,9 @@
 import logging
 import os
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel, Field, validator
 
 from app.services.ia_client import ask_llm
@@ -460,40 +460,6 @@ async def get_dietary_preferences():
                 "id": "high_protein",
                 "name": "High Protein",
                 "description": "Increased protein focus",
-            },
-        ]
-    }
-
-
-@router.get("/activity-levels")
-async def get_activity_levels():
-    """Get available activity levels."""
-    return {
-        "activity_levels": [
-            {
-                "id": "sedentary",
-                "name": "Sedentary",
-                "description": "Little to no exercise",
-            },
-            {
-                "id": "lightly_active",
-                "name": "Lightly Active",
-                "description": "Light exercise 1-3 days/week",
-            },
-            {
-                "id": "moderately_active",
-                "name": "Moderately Active",
-                "description": "Moderate exercise 3-5 days/week",
-            },
-            {
-                "id": "very_active",
-                "name": "Very Active",
-                "description": "Hard exercise 6-7 days/week",
-            },
-            {
-                "id": "extra_active",
-                "name": "Extra Active",
-                "description": "Very hard exercise, physical job",
             },
         ]
     }
